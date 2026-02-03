@@ -17,13 +17,20 @@ function isEvenWeek(date = new Date()) {
     const millisecondsPerWeek = 7 * 24 * 60 * 60 * 1000;
     const weeksPassed = Math.floor((date - academicYearStart) / millisecondsPerWeek);
     
-    // Возвращаем true для четной недели, false для нечетной
-    return weeksPassed % 2 === 0;
+    // ВОТ ИЗМЕНЕНИЕ: Меняем четность на противоположную
+    // Если weeksPassed четное - возвращаем false (нечетная неделя)
+    // Если weeksPassed нечетное - возвращаем true (четная неделя)
+    return weeksPassed % 2 === 1; // Было: weeksPassed % 2 === 0
 }
 
 // Получить тип недели (четная/нечетная)
 function getWeekType(date = new Date()) {
     return isEvenWeek(date) ? 'четная' : 'нечетная';
+}
+
+// Инвертировать четность недели (второй вариант исправления)
+function getCorrectedWeekType(date = new Date()) {
+    return isEvenWeek(date) ? 'нечетная' : 'четная';
 }
 
 // Эмодзи для типов занятий
@@ -57,7 +64,8 @@ function getScheduleForDay(day, showWeek = true, targetDate = new Date()) {
     }
     
     if (schedule[day]) {
-        const currentWeekType = getWeekType(targetDate);
+        // ИСПРАВЛЕНО: Используем исправленный тип недели
+        const currentWeekType = getCorrectedWeekType(targetDate);
         const allClasses = schedule[day];
         
         // Фильтруем пары по текущей неделе
@@ -113,7 +121,8 @@ function getTomorrowSchedule() {
 // Получить расписание на всю неделю
 function getWeekSchedule(weekType = null) {
     const currentDate = new Date();
-    const currentWeekType = weekType || getWeekType(currentDate);
+    // ИСПРАВЛЕНО: Используем исправленный тип недели
+    const currentWeekType = weekType || getCorrectedWeekType(currentDate);
     
     let response = `📚 *Расписание на неделю*\n`;
     response += `📆 Неделя: *${currentWeekType.toUpperCase()}*\n\n`;
@@ -180,54 +189,13 @@ function getScheduleByWeekType(type) {
     return response;
 }
 
-// Инвертировать четность недели (если бот показывает наоборот)
-function invertWeekType(date = new Date()) {
-    return isEvenWeek(date) ? 'нечетная' : 'четная';
-}
-
-// Получить расписание с возможностью инвертирования недели
-function getCorrectedWeekSchedule() {
-    const currentDate = new Date();
-    const currentWeekType = invertWeekType(currentDate); // Используем инвертированный тип
-    
-    let response = `📚 *Расписание на неделю*\n`;
-    response += `📆 Неделя: *${currentWeekType.toUpperCase()}*\n\n`;
-    
-    const weekDays = ['понедельник', 'вторник', 'среда', 'четверг', 'пятница'];
-    
-    weekDays.forEach(day => {
-        const allClasses = schedule[day] || [];
-        const classes = allClasses.filter(cls => {
-            return cls.weeks === 'все' || cls.weeks === currentWeekType;
-        });
-        
-        response += `▪️ *${day.toUpperCase()}*\n`;
-        if (classes && classes.length > 0) {
-            classes.forEach(cls => {
-                const typeEmoji = getTypeEmoji(cls.type);
-                response += `  ${cls.time} ${typeEmoji} ${cls.subject}`;
-                if (cls.weeks !== 'все') {
-                    response += ` [${cls.weeks}]`;
-                }
-                response += ` (ауд. ${cls.room})\n`;
-            });
-        } else {
-            response += '  Выходной\n';
-        }
-        response += '\n';
-    });
-    
-    return response;
-}
-
 // Справка
 function getHelpMessage() {
-    const currentWeekType = getWeekType();
-    const correctedWeekType = invertWeekType(); // Показываем исправленный тип
+    const currentWeekType = getCorrectedWeekType();
     
     return `🤖 *Бот расписания пар*
 
-📆 Текущая неделя: *${correctedWeekType.toUpperCase()}*
+📆 Текущая неделя: *${currentWeekType.toUpperCase()}*
 
 *📋 Основные команды:*
 • сегодня / today - расписание на сегодня
@@ -239,9 +207,6 @@ function getHelpMessage() {
 *📅 По неделям:*
 • четная - расписание на четную неделю
 • нечетная - расписание на нечетную неделю
-
-*🔄 Исправление недели:*
-• исправить неделю - инвертировать четность недели
 
 *ℹ️ Обозначения:*
 📖 - Лекция
@@ -302,7 +267,7 @@ async function startBot() {
                     setTimeout(() => startBot(), 10000);
                 }
             } else if (connection === 'open') {
-                const weekType = invertWeekType(); // Показываем исправленный тип
+                const weekType = getCorrectedWeekType();
                 console.log('\n✅ БОТ УСПЕШНО ПОДКЛЮЧЕН К WHATSAPP!');
                 console.log(`📆 Текущая неделя: ${weekType.toUpperCase()}`);
                 console.log('📚 Бот готов отвечать на команды в группах!\n');
@@ -331,22 +296,13 @@ async function startBot() {
                     response = getHelpMessage();
                 }
                 else if (['сегодня', 'today'].includes(command)) {
-                    // Используем инвертированный тип для сегодняшнего дня
-                    const days = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
-                    const today = days[new Date().getDay()];
-                    response = getScheduleForDay(today, true, new Date());
+                    response = getTodaySchedule();
                 }
                 else if (['завтра', 'tomorrow'].includes(command)) {
-                    // Используем инвертированный тип для завтрашнего дня
-                    const days = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
-                    const tomorrow = new Date();
-                    tomorrow.setDate(tomorrow.getDate() + 1);
-                    const tomorrowDay = days[tomorrow.getDay()];
-                    response = getScheduleForDay(tomorrowDay, true, tomorrow);
+                    response = getTomorrowSchedule();
                 }
                 else if (['расписание', 'неделя', 'week', 'все'].includes(command)) {
-                    // Используем исправленное расписание с инвертированной неделей
-                    response = getCorrectedWeekSchedule();
+                    response = getWeekSchedule();
                 }
                 else if (command === 'четная' || command === 'четная неделя') {
                     response = getScheduleByWeekType('четная');
@@ -355,11 +311,8 @@ async function startBot() {
                     response = getScheduleByWeekType('нечетная');
                 }
                 else if (command === 'какая неделя' || command === 'неделя?') {
-                    const weekType = invertWeekType(); // Показываем инвертированный тип
+                    const weekType = getCorrectedWeekType();
                     response = `📆 Сейчас *${weekType.toUpperCase()}* неделя`;
-                }
-                else if (command === 'исправить неделю' || command === 'инвертировать') {
-                    response = `📆 Режим исправления активирован!\nТеперь недели показываются правильно.\nТекущая неделя: *${invertWeekType().toUpperCase()}*`;
                 }
                 else {
                     // Проверяем, не день недели ли это
@@ -389,5 +342,5 @@ async function startBot() {
 
 // Запуск бота
 console.log('🚀 Запуск бота расписания...\n');
-console.log('⚠️  Режим инвертирования недели активирован');
+console.log('✅ Режим исправления недели активирован (инвертировано)');
 startBot();
