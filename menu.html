@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Конструктор расписания для WhatsApp бота</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4c6ef5 0%, #3b5bdb 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .tab:hover {
+            background: #e9ecef;
+        }
+        
+        .tab.active {
+            background: white;
+            border-bottom: 3px solid #4c6ef5;
+            color: #4c6ef5;
+        }
+        
+        .content {
+            padding: 30px;
+            min-height: 500px;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .day-schedule {
+            margin-bottom: 40px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .day-title {
+            font-size: 1.8em;
+            color: #343a40;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .add-lesson-btn {
+            background: #40c057;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9em;
+            transition: background 0.3s ease;
+        }
+        
+        .add-lesson-btn:hover {
+            background: #37b24d;
+        }
+        
+        .lesson {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #dee2e6;
+            position: relative;
+        }
+        
+        .lesson-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .lesson-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .delete-lesson {
+            background: #fa5252;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2em;
+            line-height: 1;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group label {
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.9em;
+        }
+        
+        input, select {
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #4c6ef5;
+            box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.1);
+        }
+        
+        .week-checkboxes {
+            display: flex;
+            gap: 15px;
+            margin-top: 5px;
+        }
+        
+        .week-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .week-checkbox input {
+            width: auto;
+        }
+        
+        .output-section {
+            background: #1a1a2e;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 40px;
+        }
+        
+        .output-header {
+            color: white;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .output-header h3 {
+            font-size: 1.5em;
+        }
+        
+        #copyJsonBtn {
+            background: #40c057;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1em;
+            transition: background 0.3s ease;
+        }
+        
+        #copyJsonBtn:hover {
+            background: #37b24d;
+        }
+        
+        #jsonOutput {
+            background: #0f3460;
+            color: #9fef00;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+        
+        .action-btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1.1em;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        #generateJsonBtn {
+            background: linear-gradient(135deg, #4c6ef5 0%, #3b5bdb 100%);
+            color: white;
+        }
+        
+        #loadExampleBtn {
+            background: #868e96;
+            color: white;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .save-load-section {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .save-load-section input {
+            flex: 1;
+        }
+        
+        .save-btn, .load-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .save-btn {
+            background: #40c057;
+            color: white;
+        }
+        
+        .load-btn {
+            background: #fd7e14;
+            color: white;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: #40c057;
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transform: translateX(150%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .content {
+                padding: 15px;
+            }
+            
+            .day-schedule {
+                padding: 15px;
+            }
+            
+            .actions {
+                flex-direction: column;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📅 Конструктор расписания для WhatsApp бота</h1>
+            <p>Создайте расписание пар и получите готовый JSON для вашего бота</p>
+        </div>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('editor')">Редактор расписания</div>
+            <div class="tab" onclick="showTab('output')">Получить JSON</div>
+        </div>
+        
+        <div class="content">
+            <!-- Редактор расписания -->
+            <div id="editor" class="tab-content active">
+                <div id="scheduleContainer">
+                    <!-- Расписание будет сгенерировано здесь -->
+                </div>
+                
+                <div class="actions">
+                    <button class="action-btn" id="generateJsonBtn" onclick="generateJson()">
+                        🚀 Сгенерировать JSON
+                    </button>
+                    <button class="action-btn" id="loadExampleBtn" onclick="loadExample()">
+                        📋 Загрузить пример
+                    </button>
+                </div>
+                
+                <div class="save-load-section">
+                    <input type="file" id="loadFile" accept=".json" style="display: none;">
+                    <input type="text" id="fileName" placeholder="Название файла (без .json)">
+                    <button class="save-btn" onclick="saveSchedule()">💾 Сохранить</button>
+                    <button class="load-btn" onclick="document.getElementById('loadFile').click()">📂 Загрузить</button>
+                </div>
+            </div>
+            
+            <!-- Вывод JSON -->
+            <div id="output" class="tab-content">
+                <div class="output-section">
+                    <div class="output-header">
+                        <h3>📄 Готовый JSON для schedule.json</h3>
+                        <button id="copyJsonBtn" onclick="copyJson()">
+                            📋 Скопировать JSON
+                        </button>
+                    </div>
+                    <pre id="jsonOutput">// JSON появится здесь после генерации</pre>
+                </div>
+                
+                <div style="text-align: center; margin-top: 30px;">
+                    <button class="action-btn" onclick="showTab('editor')" style="background: #fd7e14;">
+                        ✏️ Вернуться к редактированию
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="notification" id="notification"></div>
+    
+    <script>
+        // Дни недели
+        const daysOfWeek = [
+            'понедельник',
+            'вторник', 
+            'среда',
+            'четверг',
+            'пятница',
+            'суббота',
+            'воскресенье'
+        ];
+        
+        // Типы занятий
+        const lessonTypes = [
+            'лекция',
+            'практика', 
+            'лабораторная',
+            'семинар'
+        ];
+        
+        // Типы недель
+        const weekTypes = ['все', 'четная', 'нечетная'];
+        
+        // Исходное расписание
+        let scheduleData = {
+            "понедельник": [],
+            "вторник": [],
+            "среда": [],
+            "четверг": [],
+            "пятница": [],
+            "суббота": [],
+            "воскресенье": []
+        };
+        
+        // Загружаем из localStorage при запуске
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('whatsapp-schedule-bot-data');
+            if (saved) {
+                try {
+                    scheduleData = JSON.parse(saved);
+                    showNotification('✅ Загружены сохранённые данные');
+                } catch (e) {
+                    console.error('Ошибка загрузки из localStorage:', e);
+                }
+            }
+        }
+        
+        // Сохраняем в localStorage
+        function saveToLocalStorage() {
+            localStorage.setItem('whatsapp-schedule-bot-data', JSON.stringify(scheduleData));
+        }
+        
+        // Загружаем пример расписания
+        function loadExample() {
+            scheduleData = {
+                "понедельник": [
+                    {
+                        "time": "08:30",
+                        "subject": "Математический анализ",
+                        "weeks": "все",
+                        "type": "лекция",
+                        "room": "201",
+                        "teacher": "Рахимов А.А."
+                    },
+                    {
+                        "time": "10:15", 
+                        "subject": "Физика",
+                        "weeks": "четная",
+                        "type": "лабораторная", 
+                        "room": "305",
+                        "teacher": "Иванова С.П."
+                    }
+                ],
+                "вторник": [
+                    {
+                        "time": "08:30",
+                        "subject": "Английский язык", 
+                        "weeks": "все",
+                        "type": "практика",
+                        "room": "102", 
+                        "teacher": "Смирнова О.В."
+                    }
+                ],
+                "среда": [
+                    {
+                        "time": "10:15",
+                        "subject": "Химия",
+                        "weeks": "все", 
+                        "type": "лекция",
+                        "room": "306",
+                        "teacher": "Волкова Е.Н."
+                    }
+                ],
+                "четверг": [
+                    {
+                        "time": "08:30",
+                        "subject": "Информатика",
+                        "weeks": "все",
+                        "type": "лекция", 
+                        "room": "402",
+                        "teacher": "Морозов В.И."
+                    }
+                ],
+                "пятница": [
+                    {
+                        "time": "08:30", 
+                        "subject": "Физкультура",
+                        "weeks": "все",
+                        "type": "практика",
+                        "room": "Спортзал",
+                        "teacher": "Федоров С.С."
+                    }
+                ],
+                "суббота": [],
+                "воскресенье": []
+            };
+            
+            renderSchedule();
+            showNotification('✅ Загружен пример расписания');
+        }
+        
+        // Рендерим расписание
+        function renderSchedule() {
+            const container = document.getElementById('scheduleContainer');
+            container.innerHTML = '';
+            
+            daysOfWeek.forEach(day => {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'day-schedule';
+                
+                dayElement.innerHTML = `
+                    <div class="day-title">
+                        <span>${day.charAt(0).toUpperCase() + day.slice(1)}</span>
+                        <button class="add-lesson-btn" onclick="addLesson('${day}')">
+                            + Добавить пару
+                        </button>
+                    </div>
+                    <div id="lessons-${day}"></div>
+                `;
+                
+                container.appendChild(dayElement);
+                
+                // Рендерим пары для этого дня
+                const lessonsContainer = document.getElementById(`lessons-${day}`);
+                if (scheduleData[day] && scheduleData[day].length > 0) {
+                    scheduleData[day].forEach((lesson, index) => {
+                        lessonsContainer.appendChild(createLessonElement(day, index, lesson));
+                    });
+                } else {
+                    lessonsContainer.innerHTML = '<p style="color: #868e96; font-style: italic;">Нет пар</p>';
+                }
+            });
+        }
+        
+        // Создаём элемент пары
+        function createLessonElement(day, index, lesson) {
+            const lessonElement = document.createElement('div');
+            lessonElement.className = 'lesson';
+            
+            lessonElement.innerHTML = `
+                <div class="lesson-header">
+                    <div class="lesson-title">Пара ${index + 1}</div>
+                    <button class="delete-lesson" onclick="deleteLesson('${day}', ${index})">×</button>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Время начала:</label>
+                        <input type="time" value="${lesson.time}" 
+                               onchange="updateLesson('${day}', ${index}, 'time', this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label>Название предмета:</label>
+                        <input type="text" value="${lesson.subject}" 
+                               onchange="updateLesson('${day}', ${index}, 'subject', this.value)"
+                               placeholder="Например: Математика">
+                    </div>
+                    <div class="form-group">
+                        <label>Тип занятия:</label>
+                        <select onchange="updateLesson('${day}', ${index}, 'type', this.value)">
+                            ${lessonTypes.map(type => `
+                                <option value="${type}" ${lesson.type === type ? 'selected' : ''}>
+                                    ${type.charAt(0).toUpperCase() + type.slice(1)}
+                                </option>
+                            `).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Аудитория:</label>
+                        <input type="text" value="${lesson.room}" 
+                               onchange="updateLesson('${day}', ${index}, 'room', this.value)"
+                               placeholder="Например: 201">
+                    </div>
+                    <div class="form-group">
+                        <label>Преподаватель:</label>
+                        <input type="text" value="${lesson.teacher}" 
+                               onchange="updateLesson('${day}', ${index}, 'teacher', this.value)"
+                               placeholder="Например: Иванов И.И.">
+                    </div>
+                    <div class="form-group">
+                        <label>Недели:</label>
+                        <div class="week-checkboxes">
+                            ${weekTypes.map(week => `
+                                <label class="week-checkbox">
+                                    <input type="radio" name="weeks-${day}-${index}" 
+                                           value="${week}" 
+                                           ${lesson.weeks === week ? 'checked' : ''}
+                                           onchange="updateLesson('${day}', ${index}, 'weeks', '${week}')">
+                                    ${week.charAt(0).toUpperCase() + week.slice(1)}
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            return lessonElement;
+        }
+        
+        // Добавляем новую пару
+        function addLesson(day) {
+            if (!scheduleData[day]) {
+                scheduleData[day] = [];
+            }
+            
+            const newLesson = {
+                time: "08:30",
+                subject: "Новый предмет",
+                weeks: "все",
+                type: "лекция",
+                room: "000",
+                teacher: "Фамилия И.О."
+            };
+            
+            scheduleData[day].push(newLesson);
+            saveToLocalStorage();
+            renderSchedule();
+            showNotification('✅ Пара добавлена');
+        }
+        
+        // Обновляем пару
+        function updateLesson(day, index, field, value) {
+            if (scheduleData[day] && scheduleData[day][index]) {
+                scheduleData[day][index][field] = value;
+                saveToLocalStorage();
+            }
+        }
+        
+        // Удаляем пару
+        function deleteLesson(day, index) {
+            if (scheduleData[day] && scheduleData[day][index]) {
+                scheduleData[day].splice(index, 1);
+                saveToLocalStorage();
+                renderSchedule();
+                showNotification('✅ Пара удалена');
+            }
+        }
+        
+        // Генерируем JSON
+        function generateJson() {
+            // Удаляем пустые дни
+            const cleanedSchedule = {};
+            Object.keys(scheduleData).forEach(day => {
+                if (scheduleData[day] && scheduleData[day].length > 0) {
+                    cleanedSchedule[day] = scheduleData[day];
+                } else {
+                    cleanedSchedule[day] = [];
+                }
+            });
+            
+            const jsonString = JSON.stringify(cleanedSchedule, null, 2);
+            document.getElementById('jsonOutput').textContent = jsonString;
+            showTab('output');
+            showNotification('✅ JSON сгенерирован');
+        }
+        
+        // Копируем JSON в буфер обмена
+        function copyJson() {
+            const jsonText = document.getElementById('jsonOutput').textContent;
+            navigator.clipboard.writeText(jsonText).then(() => {
+                showNotification('✅ JSON скопирован в буфер обмена');
+            });
+        }
+        
+        // Сохраняем расписание в файл
+        function saveSchedule() {
+            const fileName = document.getElementById('fileName').value || 'schedule';
+            const cleanedSchedule = {};
+            Object.keys(scheduleData).forEach(day => {
+                if (scheduleData[day] && scheduleData[day].length > 0) {
+                    cleanedSchedule[day] = scheduleData[day];
+                } else {
+                    cleanedSchedule[day] = [];
+                }
+            });
+            
+            const dataStr = JSON.stringify(cleanedSchedule, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            
+            const downloadLink = document.createElement('a');
+            downloadLink.href = URL.createObjectURL(dataBlob);
+            downloadLink.download = `${fileName}.json`;
+            downloadLink.click();
+            
+            showNotification('✅ Файл сохранён');
+        }
+        
+        // Загружаем расписание из файла
+        document.getElementById('loadFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const loadedData = JSON.parse(e.target.result);
+                    scheduleData = loadedData;
+                    saveToLocalStorage();
+                    renderSchedule();
+                    showNotification('✅ Расписание загружено');
+                } catch (error) {
+                    showNotification('❌ Ошибка загрузки файла');
+                    console.error('Ошибка парсинга JSON:', error);
+                }
+            };
+            reader.readAsText(file);
+        });
+        
+        // Переключаем вкладки
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.getElementById(tabName).classList.add('active');
+            document.querySelector(`.tab[onclick="showTab('${tabName}')"]`).classList.add('active');
+        }
+        
+        // Показываем уведомление
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+        
+        // Инициализация
+        loadFromLocalStorage();
+        renderSchedule();
+        
+        // Добавляем обработчик для загрузки по Enter в названии файла
+        document.getElementById('fileName').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                saveSchedule();
+            }
+        });
+    </script>
+</body>
+</html>

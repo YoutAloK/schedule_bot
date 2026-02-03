@@ -1,0 +1,26 @@
+# Данные авторизации (НЕ ДЕЛИТЕСЬ!)
+auth_info_baileys/
+
+# Node modules
+node_modules/
+
+# Логи
+*.log
+npm-debug.log*
+
+# Environment variables
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# PM2
+.pm2/
