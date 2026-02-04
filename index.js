@@ -20,7 +20,7 @@ function isEvenWeek(date = new Date()) {
     // ВОТ ИЗМЕНЕНИЕ: Меняем четность на противоположную
     // Если weeksPassed четное - возвращаем false (нечетная неделя)
     // Если weeksPassed нечетное - возвращаем true (четная неделя)
-    return weeksPassed % 2 === 0; // Было: weeksPassed % 2 === 0
+    return weeksPassed % 2 === 1; // Было: weeksPassed % 2 === 0
 }
 
 // Получить тип недели (четная/нечетная)
