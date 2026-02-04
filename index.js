@@ -1,34 +1,41 @@
 const { default: makeWASocket, DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const P = require('pino');
 const qrcode = require('qrcode-terminal');
-const schedule = require('./schedule.json');
+const fs = require('fs');
+const path = require('path');
+
+// ✅ ОПТИМИЗАЦИЯ: Расписание больше НЕ загружается в память при старте
+// Вместо этого читаем файл только когда нужно
+
+// Путь к файлу расписания
+const SCHEDULE_FILE = path.join(__dirname, 'schedule.json');
+
+// Функция для чтения расписания из файла (читаем только когда нужно!)
+function getSchedule() {
+    try {
+        const data = fs.readFileSync(SCHEDULE_FILE, 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        console.error('❌ Ошибка чтения расписания:', error.message);
+        return {};
+    }
+}
 
 // Функция для определения четности недели в учебном году
 function isEvenWeek(date = new Date()) {
-    // 1 сентября - начало учебного года (можно изменить на нужную дату)
-    const academicYearStart = new Date(date.getFullYear(), 8, 1); // 1 сентября текущего года
+    const academicYearStart = new Date(date.getFullYear(), 8, 1);
     
-    // Если текущая дата до 1 сентября, берем начало прошлого учебного года
     if (date < academicYearStart) {
         academicYearStart.setFullYear(date.getFullYear() - 1);
     }
     
-    // Вычисляем количество прошедших недель с начала учебного года
     const millisecondsPerWeek = 7 * 24 * 60 * 60 * 1000;
     const weeksPassed = Math.floor((date - academicYearStart) / millisecondsPerWeek);
     
-    // ВОТ ИЗМЕНЕНИЕ: Меняем четность на противоположную
-    // Если weeksPassed четное - возвращаем false (нечетная неделя)
-    // Если weeksPassed нечетное - возвращаем true (четная неделя)
-    return weeksPassed % 2 === 1; // Было: weeksPassed % 2 === 0
+    return weeksPassed % 2 === 0;
 }
 
 // Получить тип недели (четная/нечетная)
-function getWeekType(date = new Date()) {
-    return isEvenWeek(date) ? 'четная' : 'нечетная';
-}
-
-// Инвертировать четность недели (второй вариант исправления)
 function getCorrectedWeekType(date = new Date()) {
     return isEvenWeek(date) ? 'нечетная' : 'четная';
 }
@@ -46,9 +53,11 @@ function getTypeEmoji(type) {
 
 // Функция для получения расписания по дню
 function getScheduleForDay(day, showWeek = true, targetDate = new Date()) {
+    // ✅ ОПТИМИЗАЦИЯ: Читаем расписание только здесь, когда нужно
+    const schedule = getSchedule();
+    
     day = day.toLowerCase().trim();
     
-    // Короткие команды
     const dayAliases = {
         'пн': 'понедельник',
         'вт': 'вторник',
@@ -64,11 +73,9 @@ function getScheduleForDay(day, showWeek = true, targetDate = new Date()) {
     }
     
     if (schedule[day]) {
-        // ИСПРАВЛЕНО: Используем исправленный тип недели
         const currentWeekType = getCorrectedWeekType(targetDate);
         const allClasses = schedule[day];
         
-        // Фильтруем пары по текущей неделе
         const classes = allClasses.filter(cls => {
             return cls.weeks === 'все' || cls.weeks === currentWeekType;
         });
@@ -90,7 +97,6 @@ function getScheduleForDay(day, showWeek = true, targetDate = new Date()) {
             response += `   📍 Аудитория: ${cls.room}\n`;
             response += `   👨‍🏫 ${cls.teacher}\n`;
             
-            // Показываем если пара только на определенной неделе
             if (cls.weeks !== 'все') {
                 response += `   📌 Только ${cls.weeks} неделя\n`;
             }
@@ -120,8 +126,10 @@ function getTomorrowSchedule() {
 
 // Получить расписание на всю неделю
 function getWeekSchedule(weekType = null) {
+    // ✅ ОПТИМИЗАЦИЯ: Читаем расписание только здесь
+    const schedule = getSchedule();
+    
     const currentDate = new Date();
-    // ИСПРАВЛЕНО: Используем исправленный тип недели
     const currentWeekType = weekType || getCorrectedWeekType(currentDate);
     
     let response = `📚 *Расписание на неделю*\n`;
@@ -159,6 +167,9 @@ function getScheduleByWeekType(type) {
     if (type !== 'четная' && type !== 'нечетная') {
         return null;
     }
+    
+    // ✅ ОПТИМИЗАЦИЯ: Читаем расписание только здесь
+    const schedule = getSchedule();
     
     let response = `📚 *Расписание на ${type} неделю*\n\n`;
     
@@ -212,6 +223,7 @@ function getHelpMessage() {
 📖 - Лекция
 ✏️ - Практика
 🔬 - Лабораторная работа
+💬 - Семинар
 
 Просто напишите команду в группу! 📱`;
 }
@@ -221,7 +233,6 @@ async function startBot() {
     try {
         const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
         
-        // Получаем последнюю версию Baileys
         const { version, isLatest } = await fetchLatestBaileysVersion();
         console.log(`Используется WA версия v${version.join('.')}, последняя: ${isLatest}`);
         
@@ -270,6 +281,7 @@ async function startBot() {
                 const weekType = getCorrectedWeekType();
                 console.log('\n✅ БОТ УСПЕШНО ПОДКЛЮЧЕН К WHATSAPP!');
                 console.log(`📆 Текущая неделя: ${weekType.toUpperCase()}`);
+                console.log('💾 Режим экономии памяти: ВКЛ (расписание читается из файла)');
                 console.log('📚 Бот готов отвечать на команды в группах!\n');
             } else if (connection === 'connecting') {
                 console.log('🔄 Подключение к WhatsApp...');
@@ -315,7 +327,6 @@ async function startBot() {
                     response = `📆 Сейчас *${weekType.toUpperCase()}* неделя`;
                 }
                 else {
-                    // Проверяем, не день недели ли это
                     const daySchedule = getScheduleForDay(command);
                     if (daySchedule) {
                         response = daySchedule;
@@ -342,5 +353,6 @@ async function startBot() {
 
 // Запуск бота
 console.log('🚀 Запуск бота расписания...\n');
-console.log('✅ Режим исправления недели активирован (инвертировано)');
+console.log('💾 ОПТИМИЗАЦИЯ: Расписание читается из файла (экономия RAM)');
+console.log('✅ Режим исправления недели активирован\n');
 startBot();
